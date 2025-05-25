@@ -7,7 +7,7 @@ TxFrames is a powerful video frame interpolation tool that uses AI to generate s
 - 🚀 **AI-Powered Interpolation**: Uses advanced neural networks to generate intermediate frames
 - ⚡ **GPU Acceleration**: Supports DirectML for hardware-accelerated processing
 - 🎞️ **Multiple Modes**:
-  - Frame multiplication (2x, 3, 4x, 8x, 16x)
+  - Frame multiplication (2x, 3x, 4x, 8x, 16x)
   - Slow motion (2x, 4x, 8x)
 - 🎥 **Video Support**: Works with MP4, MKV, AVI, MOV, WEBM, FLV, GIF
 - 🔊 **Audio Handling**: Preserves original audio (except in slow motion mode)
