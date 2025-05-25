@@ -1,0 +1,13 @@
+# Core libraries
+numpy>=1.23
+opencv-python>=4.7
+Pillow>=9.5
+natsort>=8.4
+
+# ONNX Runtime with DirectML GPU support (Windows only)
+onnxruntime-directml>=1.16
+
+# PyQt6 for GUI
+PyQt6>=6.5
+PyQt6-Qt6>=6.5
+PyQt6-sip>=13.5
