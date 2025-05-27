@@ -1,4 +1,3 @@
-# Standard library imports
 import sys
 import os
 import json
@@ -19,6 +18,7 @@ import cv2
 from PIL import Image
 from natsort import natsorted
 
+#Debug
 import onnxruntime as ort
 print("Available providers:", ort.get_available_providers())
 print("CUDA available:", 'CUDAExecutionProvider' in ort.get_available_providers())
@@ -28,7 +28,7 @@ from onnxruntime import InferenceSession, SessionOptions
 from onnxruntime import get_available_providers
 from onnxruntime import ExecutionMode, GraphOptimizationLevel
 
-# GUI imports - Using PyQt6 instead of tkinter
+# GUI imports
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QCheckBox, QProgressBar,
@@ -40,10 +40,10 @@ from PyQt6.QtGui import QIcon, QFont, QPixmap, QColor
 
 # Initialize app constants
 APP_NAME = "TxFrames"
-VERSION = "1.0"
+VERSION = "1.0.0"
 GITHUB_URL = "https://github.com/TapticDev/TxFrames"
 
-# Color scheme
+# Colour scheme
 COLORS = {
     "primary": "#F08080",
     "background": "#1E1E1E",
@@ -140,15 +140,12 @@ class AIInterpolator:
         """Initialize ONNX inference session with DirectML provider"""
         model_path = os.path.join("models", f"{self.model_name}_fp32.onnx")
         
-        # Session options - keep it simple
         sess_options = SessionOptions()
         
-        # Provider setup - use DirectML like FluidFrames
         providers = []
         provider_options = []
         
         if self.use_gpu:
-            # Map GPU selection to device IDs like FluidFrames does
             match self.gpu:
                 case 'Auto':
                     provider_options = [{"performance_preference": "high_performance"}]
@@ -163,7 +160,6 @@ class AIInterpolator:
             
             providers = ['DmlExecutionProvider']
         
-        # Always add CPU as fallback
         providers.append('CPUExecutionProvider')
         provider_options.append({})
         
@@ -177,7 +173,6 @@ class AIInterpolator:
                 provider_options=provider_options
             )
             
-            # Report active provider
             active_provider = session.get_providers()[0]
             print(f"[GPU] Session created successfully with provider: {active_provider}")
             
@@ -215,10 +210,8 @@ class AIInterpolator:
         output = np.transpose(output, (1, 2, 0))
         output = (output * 255).astype(np.uint8)
         
-        # For multiple frames, we'll generate them recursively
         frames = [output]
         
-        # If we need more than 1 intermediate frame, recursively interpolate
         if factor > 2:
             left_half = self.interpolate(frame1, output, factor//2)
             right_half = self.interpolate(output, frame2, factor//2)
@@ -228,7 +221,7 @@ class AIInterpolator:
 
 class VideoProcessor(QThread):
     """Handles video processing pipeline"""
-    progress_signal = pyqtSignal(str, int)  # status, progress
+    progress_signal = pyqtSignal(str, int)
     
     def __init__(self, config: AppConfig, input_files: list):
         super().__init__()
@@ -363,7 +356,7 @@ class VideoProcessor(QThread):
             cv2.imwrite(frame_path, frame)
             frame_paths.append(frame_path)
             
-            if i % 10 == 0:  # Update status every 10 frames
+            if i % 2 == 0:  # Update status every 2 frames
                 progress = int((i / frame_count) * 100)
                 self.progress_signal.emit(f"Extracting frames: {i}/{frame_count}", progress)
                 
@@ -375,11 +368,9 @@ class VideoProcessor(QThread):
         interp = self.config.config["interpolation"]
         
         if interp.startswith("slow"):
-            # For slow motion: slow2x = 2 total frames (1 new), slow4x = 4 total (3 new), etc.
             multiplier = int(interp.replace("slow", "").replace("x", ""))
             return (multiplier, multiplier - 1)
         else:
-            # For frame multiplication: 2x = 2 total (1 new), 3x = 3 total (2 new), etc.
             multiplier = int(interp.replace("x", ""))
             return (multiplier, multiplier - 1)
     
@@ -389,14 +380,11 @@ class VideoProcessor(QThread):
         all_frame_paths = []
         total_frames, frames_to_generate = self._get_interpolation_factor()
         
-        # Sort frame paths to ensure correct order
         sorted_frame_paths = natsorted(frame_paths)
         
         for i in range(total_pairs):
-            # Add original frame
             all_frame_paths.append(sorted_frame_paths[i])
             
-            # Load frames
             frame1 = cv2.imread(sorted_frame_paths[i])
             frame2 = cv2.imread(sorted_frame_paths[i+1])
             
@@ -404,12 +392,10 @@ class VideoProcessor(QThread):
                 self.progress_signal.emit(f"ERROR: Could not load frame {i} or {i+1}", 0)
                 continue
             
-            # Generate interpolated frames
             try:
                 if frames_to_generate > 0:
                     interpolated = self.ai.interpolate(frame1, frame2, total_frames)
                     
-                    # We only need frames_to_generate number of frames (may be less than total_frames)
                     for j in range(frames_to_generate):
                         base_name = os.path.splitext(sorted_frame_paths[i])[0]
                         gen_path = f"{base_name}_interp_{j:03d}.png"
@@ -420,14 +406,12 @@ class VideoProcessor(QThread):
                 self.progress_signal.emit(f"ERROR: Frame interpolation failed: {str(e)}", 0)
                 continue
                 
-            if i % 5 == 0:  # Update status every 5 frame pairs
+            if i % 1 == 0:  # Update status every frame
                 progress = int((i / total_pairs) * 100)
                 self.progress_signal.emit(f"Generating frames: {progress}% ({i}/{total_pairs})", progress)
         
-        # Add the last original frame
         all_frame_paths.append(sorted_frame_paths[-1])
         
-        # Update frame_paths reference for encoding
         frame_paths.clear()
         frame_paths.extend(all_frame_paths)
     
@@ -440,19 +424,15 @@ class VideoProcessor(QThread):
         # Calculate output frame rate
         interp = self.config.config["interpolation"]
         if interp.startswith("slow"):
-            # For slow motion, we already slowed down the video, now just use original FPS
             output_fps = original_fps
         else:
-            # For frame interpolation, multiply the frame rate
-            total_frames, _ = self._get_interpolation_factor()  # Get just the first value (total_frames)
+            total_frames, _ = self._get_interpolation_factor() 
             output_fps = original_fps * total_frames
         
-        # Create temporary directory for frame list
         temp_dir = os.path.dirname(output_path)
         list_file = os.path.join(temp_dir, "frame_list.txt")
         
         try:
-            # Create frame list file for FFmpeg
             with open(list_file, "w") as f:
                 for path in natsorted(frame_paths):
                     abs_path = os.path.abspath(path).replace("\\", "/")
@@ -517,7 +497,6 @@ class VideoProcessor(QThread):
         except Exception as e:
             raise RuntimeError(f"Video encoding failed: {str(e)}")
         finally:
-            # Clean up temporary files
             if os.path.exists(list_file):
                 try:
                     os.remove(list_file)
@@ -840,7 +819,6 @@ class TxFramesApp(QMainWindow):
         if file_dialog.exec():
             files = file_dialog.selectedFiles()
             
-            # Filter and validate files
             valid_files = []
             for f in files:
                 if os.path.exists(f) and os.path.splitext(f)[1].lower() in SUPPORTED_VIDEO_EXTS:
@@ -877,7 +855,7 @@ class TxFramesApp(QMainWindow):
         self.config.config["video_codec"] = value
     
     def _toggle_gpu(self, state):
-        self.config.config["use_gpu"] = state == 2  # Qt.Checked is 2
+        self.config.config["use_gpu"] = state == 2 
     
     def _toggle_keep_frames(self, state):
         self.config.config["keep_frames"] = state == 2
