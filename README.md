@@ -15,7 +15,7 @@ TxFrames is a powerful video frame interpolation tool that uses AI to generate s
 
 ## Installation
 
-### Windows
+### Windows (Coming soon!)
 1. Download the latest release from [Releases Page](https://github.com/TapticDev/TxFrames/releases)
 2. Extract the ZIP file
 3. Run `TxFrames.exe`
